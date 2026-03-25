@@ -1,0 +1,29 @@
+{
+  "name": "gateway",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.ts",
+  "scripts": {
+    "start": "npx tsx src/server.ts",
+    "dev": "npx tsx --watch src/server.ts",
+    "build": "tsc --outDir dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/dotenv": "^8.2.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "kafkajs": "^2.2.4",
+    "morgan": "^1.10.1",
+    "typescript": "^6.0.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "tsx": "^4.21.0"
+  }
+}
