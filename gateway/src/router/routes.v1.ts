@@ -3,12 +3,14 @@ import express, { Router, Request, Response } from "express";
 import {getHello} from "../controller/hello"
 import { getClaim } from "../controller/claim";
 import { getKnowledge } from "../controller/knowledge";
+import { getEvents } from "../controller/events";
 
 const router: Router = express.Router();
 
 router
     .get("/", getHello)
     .post("/claim", getClaim)
-    .post("/knowledge",getKnowledge)
+    .post("/knowledge", getKnowledge)
+    .get("/event",getEvents)
 
 export default router;
