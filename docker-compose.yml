@@ -4,11 +4,7 @@ services:
     container_name: kafka_official
     ports:
       - "9092:9092"
-    # Load all variables from your global config file
-    env_file:
-      - ./Config.env
     environment:
-      # KRaft specific internal configs (Keep these here as they are infra-specific)
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
       - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
@@ -23,16 +19,38 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./Config.env
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=mydb
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data   # bind mount, no volumes: block needed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d mydb"]   # hardcoded, avoids blank var warning
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   node-api:
-    build: 
+    build:
       context: .
       dockerfile: gateway/Dockerfile
     container_name: gateway_service
     ports:
       - "3000:3000"
-    # Load all variables from your global config file
     env_file:
       - ./Config.env
     depends_on:
       kafka:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+# NO volumes: block here since we're using a bind mount above

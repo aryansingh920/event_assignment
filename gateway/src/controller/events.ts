@@ -4,9 +4,6 @@ import { getEventsQuery } from "../helper/queries";
 
 const pool = new Pool({ /* connection config */ });
 
-interface query{
-    region : string
-}
 
 export const getEvents = async (req: Request, res: Response) => {
     try{
