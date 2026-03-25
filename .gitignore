@@ -5,3 +5,5 @@ Config.env
 gateway/node_modules
 
 postgres_data
+
+.vscode

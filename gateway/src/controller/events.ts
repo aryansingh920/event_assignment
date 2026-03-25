@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
-import { Pool } from 'pg';
+import { pool } from "../helper/db";
 import { getEventsQuery } from "../helper/queries";
 
-const pool = new Pool({ /* connection config */ });
 
 
 export const getEvents = async (req: Request, res: Response) => {

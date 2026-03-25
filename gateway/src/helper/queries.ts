@@ -1,12 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const queryDir = "../../database/queries/";
+
+const queriesPath = path.join(process.cwd(), "database", "query");
 
 const getEventsQuery = fs.readFileSync(
-  path.join(__dirname, queryDir, "getEvents.sql"),
+  path.join(queriesPath, "getEvents.sql"),
   "utf-8",
 );
-
 
 export { getEventsQuery };
