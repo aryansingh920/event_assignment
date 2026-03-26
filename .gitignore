@@ -9,3 +9,5 @@ postgres_data
 .vscode
 
 .vscode
+service/venv
+service/venv

@@ -5,5 +5,5 @@ RUN npm install
 COPY gateway/ ./
 # Add the destination folder name here to keep the structure:
 COPY database/ ./database/
-EXPOSE 3000
+EXPOSE 8080
 CMD ["npx", "tsx", "src/server.ts"]

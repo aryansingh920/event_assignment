@@ -1,0 +1,32 @@
+FROM python:3.12-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies needed by psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create and activate a virtual environment
+RUN python -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY service/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the entire service directory (all Python scripts)
+COPY service/ ./service/
+
+# Copy database folder (SQL files used by scripts)
+COPY database/ ./database/
+
+# # Ensure entrypoint is executable (important on Linux containers built from macOS)
+# RUN chmod +x /app/service/entrypoint.sh
+
+# .env is NOT baked in — it's injected by docker-compose via env_file
+
+# Default command: run the ingestor in stream mode
+CMD ["python", "service/ingestor.py", "bulk","1000"]

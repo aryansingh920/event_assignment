@@ -43,11 +43,33 @@ services:
       dockerfile: gateway/Dockerfile
     container_name: gateway_service
     ports:
-      - "${GATEWAY_PORT}:3000"
+      - "${GATEWAY_PORT}:8080"
     env_file:
-      - ./.env          # still pass all vars into the container at runtime
+      - ./.env
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
         condition: service_healthy
+
+  python-ingestor:
+    build:
+      context: .                          # project root — gives access to service/ and database/
+      dockerfile: service/Dockerfile.ingestor
+    container_name: python_ingestor
+    env_file:
+      - ./.env                            # injects DB_*, KAFKA_* etc. into the container
+    environment:
+      - DB_HOST=postgres                  # override localhost → Docker service name
+    volumes:
+      # Mount SQL files so ingestor.py can open("ingestorInsert.sql") at runtime
+      - ./database:/app/database
+      # Mount the whole service dir so you can edit scripts without rebuilding
+      - ./service:/app/service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    # entrypoint: ["/bin/bash", "/app/service/entrypoint.sh"]
+    restart: on-failure                   # retry if DB isn't ready on first attempt
