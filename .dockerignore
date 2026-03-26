@@ -1,0 +1,23 @@
+# Local dependencies
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Data & Logs
+postgres_data/
+*.log
+
+# Git & IDE
+.git
+.gitignore
+.vscode/
+.idea/
+
+# Docker files (optional, but cleaner)
+Dockerfile*
+docker-compose.yml
+
+# Environment secrets (Docker uses env_file anyway)
+.env

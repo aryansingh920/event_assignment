@@ -6,14 +6,17 @@ interface request {
   userId: string;
 }
 
+const KAFKA_TOPIC_NAME = process.env.KAFKA_TOPIC_NAME || "";
+const KAFKA_PRODUCER_TYPE = process.env.KAFKA_PRODUCER_TYPE || "";
+
 export const sendKnowledgeCommand = async (eventId: string, userId: string) => {
   await producer.send({
-    topic: "event-commands",
+    topic: KAFKA_TOPIC_NAME,
     messages: [
       {
-        key: eventId, // Use eventId as key to ensure same-event orders go to same partition
+        key: eventId,
         value: JSON.stringify({
-          type: "ACKNOWLEDGE_EVENT",
+          type: KAFKA_PRODUCER_TYPE,
           payload: { eventId, userId, timestamp: new Date().toISOString() },
         }),
       },

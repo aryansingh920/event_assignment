@@ -1,0 +1,22 @@
+# Use a slim python image
+FROM python:3.12-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for confluent-kafka (librdkafka)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    librdkafka-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements if you have them, otherwise install directly
+# If you have a requirements.txt in the root, copy it here
+RUN pip install --no-cache-dir confluent-kafka python-dotenv
+
+# Copy the source code
+COPY . .
+
+# Run the specific consumer script
+# Use -u for unbuffered logs so you see output in docker-compose logs immediately
+CMD ["python", "-u", "service/consumer/kafka_consumer.py"]
