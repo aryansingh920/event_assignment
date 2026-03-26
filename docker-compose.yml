@@ -110,3 +110,14 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile.client
+    container_name: react_client
+    ports:
+      - "${CLIENT_PORT:-3000}:3000"
+    depends_on:
+      - node-api
+    restart: unless-stopped
