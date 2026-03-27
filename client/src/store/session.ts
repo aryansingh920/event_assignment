@@ -1,4 +1,6 @@
-import { AuthUser } from "./authSlice";
+import { LoginResponse } from "@/lib/api";
+
+export type AuthUser = LoginResponse;
 
 const SESSION_KEY = "auth_user";
 

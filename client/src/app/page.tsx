@@ -3,36 +3,34 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Alert,
   Box,
   Button,
+  Loader,
   Paper,
   Select,
   Stack,
   Text,
   TextInput,
   Title,
-  Alert,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconLogin } from "@tabler/icons-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { login } from "@/store/authSlice";
 import { saveSession } from "@/store/session";
-
-const REGIONS = [
-  { value: "us-east", label: "US East" },
-  { value: "us-west", label: "US West" },
-  { value: "eu-central", label: "EU Central" },
-  { value: "ap-south", label: "AP South" },
-  { value: "ap-southeast", label: "AP Southeast" },
-];
+import { apiLogin, apiGetRegions } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
-  const [loading, setLoading] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [regions, setRegions] = useState<string[]>([]);
+  const [regionsLoading, setRegionsLoading] = useState(true);
+  const [regionsError, setRegionsError] = useState("");
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -41,39 +39,42 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
+  // Fetch regions on mount
+  useEffect(() => {
+    apiGetRegions()
+      .then(setRegions)
+      .catch(() => setRegionsError("Could not load regions. Please refresh."))
+      .finally(() => setRegionsLoading(false));
+  }, []);
+
   const form = useForm({
-    initialValues: { username: "", userId: "", region: "" },
+    initialValues: { userId: "", region: "" },
     validate: {
-      username: (v) =>
-        v.trim().length < 2 ? "Username must be at least 2 characters" : null,
-      userId: (v) =>
-        v.trim().length < 3 ? "User ID must be at least 3 characters" : null,
+      userId: (v) => (v.trim().length < 1 ? "User ID is required" : null),
       region: (v) => (!v ? "Please select a region" : null),
     },
   });
 
   const handleSubmit = async (values: typeof form.values) => {
-    setLoading(true);
+    setSubmitting(true);
     setError("");
     try {
-      // Simulate a brief auth delay
-      await new Promise((r) => setTimeout(r, 600));
-
-      const user = {
-        username: values.username.trim(),
+      const user = await apiLogin({
         userId: values.userId.trim(),
         region: values.region,
-      };
+      });
 
-      // Save to Redux store + sessionStorage
+      // Persist to Redux store + sessionStorage
       dispatch(login(user));
       saveSession(user);
 
       router.push("/dashboard");
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Login failed. Please try again.",
+      );
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -113,18 +114,15 @@ export default function LoginPage() {
             >
               <IconLogin size={26} color="white" />
             </Box>
-            <Title
-              order={2}
-              ta="center"
-              style={{ color: "var(--mantine-color-indigo-8)" }}
-            >
+            <Title order={2} ta="center" c="indigo.8">
               Welcome back
             </Title>
-            <Text c="dimmed" size="sm" ta="center">
+            <Text c="dark.3" size="sm" ta="center">
               Sign in to access your dashboard
             </Text>
           </Stack>
 
+          {/* Errors */}
           {error && (
             <Alert
               icon={<IconAlertCircle size={16} />}
@@ -134,35 +132,53 @@ export default function LoginPage() {
               {error}
             </Alert>
           )}
+          {regionsError && (
+            <Alert
+              icon={<IconAlertCircle size={16} />}
+              color="orange"
+              variant="light"
+            >
+              {regionsError}
+            </Alert>
+          )}
 
           {/* Form */}
           <form onSubmit={form.onSubmit(handleSubmit)}>
             <Stack gap="md">
-              <TextInput
-                label="Username"
-                placeholder="e.g. john_doe"
-                required
-                {...form.getInputProps("username")}
-              />
               <TextInput
                 label="User ID"
                 placeholder="e.g. USR-00123"
                 required
                 {...form.getInputProps("userId")}
               />
+
               <Select
+                styles={{
+                  label: {
+                    color: "var(--mantine-color-black)",
+                    fontWeight: 600,
+                  },
+                  input: { color: "var(--mantine-color-gray-9)" },
+                  option: { color: "var(--mantine-color-indigo-9)" }, // Colors text in the dropdown list
+                }}
                 label="Region"
-                placeholder="Select your region"
-                data={REGIONS}
+                placeholder={
+                  regionsLoading ? "Loading regions…" : "Select your region"
+                }
+                data={regions}
                 required
+                disabled={regionsLoading || !!regionsError}
+                rightSection={regionsLoading ? <Loader size={14} /> : undefined}
                 {...form.getInputProps("region")}
               />
+
               <Button
                 type="submit"
                 fullWidth
                 size="md"
                 mt="xs"
-                loading={loading}
+                loading={submitting}
+                disabled={regionsLoading}
                 color="indigo"
               >
                 Sign In
@@ -170,9 +186,8 @@ export default function LoginPage() {
             </Stack>
           </form>
 
-          <Text size="xs" c="dimmed" ta="center">
-            Your session is stored locally and expires when you close the
-            browser.
+          <Text size="xs" c="dark.2" ta="center">
+            Your session expires when you close the browser.
           </Text>
         </Stack>
       </Paper>

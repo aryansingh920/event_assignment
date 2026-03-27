@@ -195,7 +195,7 @@ export default function DashboardPage() {
               <Text size="sm" c="dark.3" mb={2}>
                 Good day,{" "}
                 <Text span fw={600} c="indigo.7">
-                  {user.username}
+                  {user.first_name}
                 </Text>
               </Text>
               <Title order={2} fw={700} c="dark.8">
@@ -209,7 +209,7 @@ export default function DashboardPage() {
                   {user.region}
                 </Badge>
                 <Text size="xs" c="dark.4">
-                  · ID: {user.userId}
+                  · {user.username}
                 </Text>
               </Group>
             </Box>

@@ -20,6 +20,24 @@ const theme = createTheme({
   primaryColor: "indigo",
   fontFamily: "var(--font-geist-sans)",
   fontFamilyMonospace: "var(--font-geist-mono)",
+  components: {
+    InputWrapper: {
+      styles: {
+        label: {
+          color: "var(--mantine-color-gray-9)", // Much darker than default
+          fontWeight: 500,
+          marginBottom: 4,
+        },
+      },
+    },
+    Input: {
+      styles: {
+        input: {
+          color: "var(--mantine-color-black)", // Darker text inside the box
+        },
+      },
+    },
+  },
 });
 
 export const metadata: Metadata = {

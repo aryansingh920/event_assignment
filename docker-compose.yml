@@ -112,12 +112,14 @@ services:
     restart: on-failure
 
   client:
-    build:
-      context: .
-      dockerfile: client/Dockerfile.client
-    container_name: react_client
-    ports:
-      - "${CLIENT_PORT:-3000}:3000"
-    depends_on:
-      - node-api
-    restart: unless-stopped
+      build:
+        context: .
+        dockerfile: client/Dockerfile.client
+        args:
+          - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      container_name: react_client
+      ports:
+        - "${CLIENT_PORT:-3000}:3000"
+      depends_on:
+        - node-api
+      restart: unless-stopped

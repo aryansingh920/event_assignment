@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+// client/next.config.ts
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: "export", // This is CRITICAL for the Nginx strategy
 };
 
-export default nextConfig;
+module.exports = nextConfig;

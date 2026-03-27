@@ -23,9 +23,11 @@ export default function DashboardNavbar() {
     router.replace("/");
   };
 
-  const initials = user?.username
-    ? user.username.slice(0, 2).toUpperCase()
+  const initials = user
+    ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
     : "U";
+
+  const fullName = user ? `${user.first_name} ${user.last_name}` : "";
 
   return (
     <Box
@@ -83,10 +85,10 @@ export default function DashboardNavbar() {
                   </Avatar>
                   <Box visibleFrom="sm">
                     <Text size="sm" fw={500} lh={1.2}>
-                      {user.username}
+                      {fullName}
                     </Text>
                     <Text size="xs" c="dimmed" lh={1.2}>
-                      {user.userId}
+                      @{user.username}
                     </Text>
                   </Box>
                 </Group>
@@ -96,9 +98,25 @@ export default function DashboardNavbar() {
             <Menu.Dropdown>
               <Menu.Label>Account</Menu.Label>
               <Menu.Item leftSection={<IconUser size={14} />} disabled>
-                <Text size="sm">{user.username}</Text>
+                <Text size="sm" fw={500}>
+                  {fullName}
+                </Text>
                 <Text size="xs" c="dimmed">
-                  {user.userId}
+                  @{user.username}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {user.id}
+                </Text>
+              </Menu.Item>
+              <Menu.Item
+                leftSection={
+                  <Badge size="xs" color="teal" variant="light">
+                    {user.prefix}
+                  </Badge>
+                }
+              >
+                <Text size="xs" c="dimmed">
+                  Role prefix
                 </Text>
               </Menu.Item>
               <Menu.Item
