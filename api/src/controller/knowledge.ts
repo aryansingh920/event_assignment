@@ -65,6 +65,7 @@ export const sendAcknowledgeCommand = async (
           payload: { eventId, userId, timestamp: new Date().toISOString() },
         }),
       },
+      
     ],
   });
 };

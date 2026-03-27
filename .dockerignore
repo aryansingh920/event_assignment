@@ -28,7 +28,7 @@ service/module/__pycache__
 service/ingestor/__pycache__
 service/consumer/__pycache__
 service/__pycache__
-
+service/cache/__pycache__
 
 client/node_modules
 api/node_modules

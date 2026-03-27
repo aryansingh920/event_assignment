@@ -3,7 +3,7 @@
 docker compose down -v
 docker compose up --build
 
-# clear && docker compose down && sudo rm -rf ./postgres_data && docker compose up --build
+clear && docker compose down && sudo rm -rf ./postgres_data && docker compose up --build
 
 docker exec -it postgres_db psql -U admin -d mydb
 # \dt

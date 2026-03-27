@@ -4,6 +4,7 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     librdkafka-dev \
@@ -11,12 +12,19 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Install both kafka and postgres drivers
-RUN pip install --no-cache-dir confluent-kafka python-dotenv psycopg2-binary
+# ... (previous lines remain the same)
 
+# Update this line:
+# Since context is ".", the path to the file is service/requirements.txt
+COPY service/requirements.txt ./requirements.txt
+
+# Install dependencies
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 # Copy the source code
-COPY . .
+# This copies the 'service' folder into '/app/service'
+COPY service/ ./service/
+COPY database/ ./database/
+# ... (rest of the file)
 
 # Run the specific consumer script
-# Use -u for unbuffered logs so you see output in docker-compose logs immediately
 CMD ["python", "-u", "service/consumer/kafka_consumer.py"]

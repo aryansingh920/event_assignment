@@ -3,7 +3,7 @@ import json
 from dotenv import load_dotenv
 from confluent_kafka import Consumer, KafkaException, KafkaError
 from service.module.claim_event import claim_event
-
+from service.cache.lock_redis_claim_event import process_claim
 # Load environment variables from .env file
 load_dotenv()
 
@@ -50,11 +50,14 @@ def create_consumer():
                 # (Assuming the type is sent within the message body)
                 if (payload["type"] == "CLAIM_EVENT"):
                     
-                    claim_event(
+                    result = process_claim(
                         user_id=payload["payload"]["userId"], event_id=payload["payload"]["eventId"])
-
-                print(f"Received {payload["type"]}:")
-                print(json.dumps(payload, indent=2))
+                    if result["status"] == "locked":
+                        print(f"Event {result['event_id']} is locked — try again later.")
+                    elif result["status"] == "failed":
+                        print("Claim failed at DB level.")
+                    elif result["status"] == "success":
+                        print(f"Claimed: {result['data']}")
 
 
             except json.JSONDecodeError:
