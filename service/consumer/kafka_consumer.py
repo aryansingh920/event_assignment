@@ -1,27 +1,43 @@
-# consumer.py
-
 import os
 import json
 import threading
 from dotenv import load_dotenv
-from confluent_kafka import Consumer, KafkaException, KafkaError
-from service.module.claim_event import claim_event
+from confluent_kafka import Consumer, Producer, KafkaException, KafkaError
 from service.cache.lock_redis_claim_event import process_claim
 from service.cache.lock_expiry_listener import start_expiry_listener
 
 load_dotenv()
 
+WS_TOPIC = os.getenv("KAFKA_WS_TOPIC", "ws-events")
+
+
+def _make_producer() -> Producer:
+    return Producer({
+        "bootstrap.servers": os.getenv("KAFKA_BROKERS", "localhost:9092"),
+        "client.id": f"{os.getenv('KAFKA_CLIENT_ID', 'consumer')}-producer",
+    })
+
+
+def _publish_ws_event(producer: Producer, event_type: str, data: dict):
+    """Publish a processed result to the ws-events topic for the WS service."""
+    # ADDED: default=str to correctly serialize datetime objects
+    payload = json.dumps({"type": event_type, "data": data},
+                         default=str).encode("utf-8")
+    producer.produce(WS_TOPIC, value=payload)
+    producer.poll(0)  # trigger delivery callbacks without blocking
+
 
 def create_consumer():
     conf = {
-        'bootstrap.servers': os.getenv('KAFKA_BROKERS', 'localhost:9092'),
-        'group.id': f"{os.getenv('KAFKA_CLIENT_ID')}-group",
-        'auto.offset.reset': 'earliest',
-        'client.id': os.getenv('KAFKA_CLIENT_ID')
+        "bootstrap.servers": os.getenv("KAFKA_BROKERS", "localhost:9092"),
+        "group.id": f"{os.getenv('KAFKA_CLIENT_ID')}-group",
+        "auto.offset.reset": "earliest",
+        "client.id": os.getenv("KAFKA_CLIENT_ID"),
     }
 
-    topic = os.getenv('KAFKA_TOPIC_NAME', 'event-commands')
+    topic = os.getenv("KAFKA_TOPIC_NAME", "event-commands")
     consumer = Consumer(conf)
+    producer = _make_producer()
 
     try:
         consumer.subscribe([topic])
@@ -34,42 +50,49 @@ def create_consumer():
                 continue
 
             if msg.error():
-                if msg.error().code() in (KafkaError._PARTITION_EOF,
-                                          KafkaError.UNKNOWN_TOPIC_OR_PART):
+                if msg.error().code() in (
+                    KafkaError._PARTITION_EOF,
+                    KafkaError.UNKNOWN_TOPIC_OR_PART,
+                ):
                     continue
                 else:
                     raise KafkaException(msg.error())
 
             try:
-                payload = json.loads(msg.value().decode('utf-8'))
-
-                if payload["type"] == "CLAIM_EVENT":
-                    result = process_claim(
-                        user_id=payload["payload"]["userId"],
-                        event_id=payload["payload"]["eventId"]
-                    )
-                    if result["status"] == "locked":
-                        print(
-                            f"Event {result['event_id']} is locked — try again later.")
-                    elif result["status"] == "failed":
-                        print("Claim failed at DB level.")
-                    elif result["status"] == "success":
-                        print(f"Claimed: {result['data']}")
-
+                payload = json.loads(msg.value().decode("utf-8"))
             except json.JSONDecodeError:
                 print(
                     f"Received non-JSON message: {msg.value().decode('utf-8')}")
+                continue
+
+            if payload["type"] == "CLAIM_EVENT":
+                user_id = payload["payload"]["userId"]
+                event_id = payload["payload"]["eventId"]
+
+                result = process_claim(user_id=user_id, event_id=event_id)
+
+                if result["status"] == "locked":
+                    print(f"Event {event_id} is locked — try again later.")
+
+                elif result["status"] == "failed":
+                    print("Claim failed at DB level.")
+
+                elif result["status"] == "success":
+                    print(f"Claimed: {result['data']}")
+                    # Publish the outcome so the WS service can broadcast it
+                    _publish_ws_event(
+                        producer, "EVENT_CLAIMED", result["data"])
 
     except KeyboardInterrupt:
         print("\nClosing consumer...")
     finally:
+        producer.flush()
         consumer.close()
 
 
 if __name__ == "__main__":
-    # 👇 Start expiry listener in background, then run Kafka consumer as normal
-    listener_thread = threading.Thread(
-        target=start_expiry_listener, daemon=True)
-    listener_thread.start()
+    # listener_thread = threading.Thread(
+    #     target=start_expiry_listener, daemon=True)
+    # listener_thread.start()
 
-    create_consumer() 
+    create_consumer()

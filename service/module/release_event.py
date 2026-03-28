@@ -10,6 +10,8 @@ def release_event_if_claimed(event_id):
     """
     If the event is still in 'claimed' status after the Redis lock expired,
     reset it back to 'available' so it can be claimed again.
+
+    Returns the updated row dict if reset, or None if no change was made.
     """
     query = load_query("update", "release_event.sql")
     conn = None
@@ -22,17 +24,18 @@ def release_event_if_claimed(event_id):
         result = cur.fetchone()
 
         if result is None:
-            print(
-                f"Event {event_id} was NOT in 'claimed' state — no change made.")
-            return
+            print(f"Event {event_id} was NOT in 'claimed' state — no change made.")
+            return None
 
         conn.commit()
         print(f"Event {event_id} reset to 'available'.")
+        return dict(result)
 
     except Exception as e:
         print(f"DB Error while releasing event {event_id}: {e}")
         if conn:
             conn.rollback()
+        return None
     finally:
         if conn:
             cur.close()

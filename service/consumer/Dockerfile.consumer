@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r re
 # This copies the 'service' folder into '/app/service'
 COPY service/ ./service/
 COPY database/ ./database/
-# ... (rest of the file)
+
 
 # Run the specific consumer script
 CMD ["python", "-u", "service/consumer/kafka_consumer.py"]

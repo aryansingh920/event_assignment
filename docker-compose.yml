@@ -123,3 +123,31 @@ services:
       depends_on:
         - node-api
       restart: unless-stopped
+
+
+  ws-service:
+        build:
+          context: .
+          dockerfile: service/ws/Dockerfile.websocket
+        container_name: ws_service
+        ports:
+          - "${WS_PORT:-8001}:8001"
+        env_file:                    # <-- ADD THIS
+          - ./.env                   # <-- ADD THIS
+        environment:
+          - KAFKA_BROKERS=${KAFKA_BROKERS:-kafka:9092}
+          - KAFKA_TOPIC_NAME=${KAFKA_TOPIC_NAME:-event-commands}
+          - KAFKA_CLIENT_ID=ws-service
+          - REDIS_HOST=${REDIS_HOST:-redis}
+          - REDIS_PORT=${REDIS_PORT:-6379}
+          - WS_PORT=8001
+          - DB_HOST=postgres         
+          - PYTHONPATH=/app
+        depends_on:
+          kafka:
+            condition: service_healthy
+          redis:
+            condition: service_healthy
+          postgres:                  # <-- ADD THIS (optional but recommended)
+            condition: service_healthy
+        restart: unless-stopped
