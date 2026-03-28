@@ -27,9 +27,6 @@ export const getKnowledge = async (req: Request, res: Response) => {
       message: "Claim request received and is being processed",
       eventId,
     };
-
-    // console.log(checkEvent.rows, checkUser.rows)
-
     if (checkEvent.rows.length) {
       if (checkEvent.rows[0]["status"] == "claimed") {
         if (checkUser.rows.length) {

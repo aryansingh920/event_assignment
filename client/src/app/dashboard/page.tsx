@@ -16,7 +16,6 @@ import {
   Stack,
   Table,
   Text,
-  // ThemeIcon,
   Title,
   Tooltip,
   ActionIcon,
@@ -63,26 +62,6 @@ function formatDate(iso: string | null) {
     timeStyle: "short",
   });
 }
-
-// Poll the events API until `predicate` is true for the target event,
-// or until maxAttempts is reached. Returns the final events list.
-// async function pollUntil(
-//   region: string,
-//   eventId: string,
-//   predicate: (e: Event) => boolean,
-//   intervalMs = 1500,
-//   maxAttempts = 8,
-// ): Promise<Event[]> {
-//   const { apiGetEvents } = await import("@/lib/api");
-//   for (let i = 0; i < maxAttempts; i++) {
-//     await new Promise((r) => setTimeout(r, intervalMs));
-//     const events = await apiGetEvents(region);
-//     const target = events.find((e) => e.id === eventId);
-//     if (target && predicate(target)) return events;
-//   }
-//   // Return whatever the last fetch gave us
-//   return apiGetEvents(region);
-// }
 
 // ── Shared events table ───────────────────────────────────────────────────────
 

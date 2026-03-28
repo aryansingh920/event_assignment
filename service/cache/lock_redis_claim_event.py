@@ -11,7 +11,7 @@ def process_claim(user_id, event_id):
     lock_key = f"lock:event:{event_id}"
 
     # ex=900 (15 minutes), nx=True (set only if not exists)
-    is_locked = r.set(lock_key, user_id, ex=900, nx=True)
+    is_locked = r.set(lock_key, user_id, ex=30, nx=True)
 
     if not is_locked:
         print(f"Event {event_id} is locked in Redis.")
