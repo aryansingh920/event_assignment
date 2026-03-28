@@ -1,4 +1,4 @@
 SELECT *
 FROM events
-WHERE region = $1
-  AND status = 'available'
+WHERE region = $1;
+  -- AND status = 'available'
