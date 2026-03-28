@@ -9,6 +9,9 @@ __pycache__/
 postgres_data/
 *.log
 
+client/.next
+client/out
+
 # Git & IDE
 .git
 .gitignore
@@ -33,3 +36,5 @@ service/cache/__pycache__
 client/node_modules
 api/node_modules
 client/.next
+service/listeners/__pycache__
+service/ws/__pycache__

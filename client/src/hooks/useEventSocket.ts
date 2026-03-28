@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { EventSocket, EventSocketMessage } from "@/lib/socket";
-// ← removed: import { Event } from "@/lib/api";  (was imported but never used)
 
 interface Options {
   region: string;
@@ -22,16 +21,34 @@ export function useEventSocket({
   onEventUpdateRef.current = onEventUpdate;
   onConnectionChangeRef.current = onConnectionChange;
 
-  useEffect(() => {
-    if (!enabled || !region || !userId) return;
+  const regionRef = useRef(region);
+  const userIdRef = useRef(userId);
+  regionRef.current = region;
+  userIdRef.current = userId;
 
-    const socket = new EventSocket({
-      region,
-      userId,
+  const socketRef = useRef<EventSocket | null>(null);
+
+  const ready = enabled && !!region && !!userId;
+
+  useEffect(() => {
+    if (!ready) return;
+
+    // Destroy any previous socket (handles StrictMode double-mount)
+    if (socketRef.current) {
+      socketRef.current.destroy();
+      socketRef.current = null;
+    }
+
+    socketRef.current = new EventSocket({
+      getRegion: () => regionRef.current,
+      getUserId: () => userIdRef.current,
       onMessage: (msg) => onEventUpdateRef.current(msg),
       onStatusChange: (connected) => onConnectionChangeRef.current?.(connected),
     });
 
-    return () => socket.destroy();
-  }, [enabled, region, userId]);
+    return () => {
+      socketRef.current?.destroy();
+      socketRef.current = null;
+    };
+  }, [ready]);
 }

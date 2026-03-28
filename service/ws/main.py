@@ -4,7 +4,7 @@ import os
 from urllib.parse import urlparse, parse_qs
 
 import websockets
-from broadcaster import manager
+from service.ws.broadcaster import manager
 from service.listeners.redis_listener import run_redis_listener
 from service.listeners.kafka_listener import run_kafka_listener
 
@@ -19,9 +19,6 @@ WS_PORT = int(os.getenv("WS_PORT", 8000))
 
 
 async def ws_handler(websocket):
-    """
-    Endpoint: ws://host:<WS_PORT>/ws/events?region=X&userId=Y
-    """
     parsed = urlparse(websocket.request.path)
     params = parse_qs(parsed.query)
 
@@ -34,9 +31,7 @@ async def ws_handler(websocket):
 
     await manager.add(websocket, region, user_id)
     try:
-        # Keep-alive — we only push; await here to detect client disconnect
-        async for _ in websocket:
-            pass
+        await websocket.wait_closed()   # ← holds until client disconnects
     finally:
         await manager.remove(websocket, region, user_id)
 

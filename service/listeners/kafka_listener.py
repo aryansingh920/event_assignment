@@ -15,7 +15,7 @@ from service.ws.broadcaster import broadcast
 
 logger = logging.getLogger(__name__)
 
-WS_TOPIC = os.getenv("KAFKA_WS_TOPIC", "ws-events")
+WS_TOPIC = "ws-events"
 
 
 def _make_consumer() -> Consumer:

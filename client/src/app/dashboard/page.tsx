@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Affix,
@@ -238,8 +238,8 @@ function EventModal({
     setActionError("");
     try {
       await apiClaimEvent(event.id, userId);
-      onActionStarted(event.id); // Trigger processing state
-      onClose(); // Close immediately for better UX
+      onActionStarted(event.id);
+      onClose();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to claim event");
       setClaiming(false);
@@ -251,8 +251,8 @@ function EventModal({
     setActionError("");
     try {
       await apiAcknowledgeEvent(event.id, userId);
-      onActionStarted(event.id); // Trigger processing state
-      onClose(); // Close immediately for better UX
+      onActionStarted(event.id);
+      onClose();
     } catch (e) {
       setActionError(
         e instanceof Error ? e.message : "Failed to acknowledge event",
@@ -412,7 +412,6 @@ export default function DashboardPage() {
   const [wsConnected, setWsConnected] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
 
-  // Track events that are currently queued in Kafka/Redis to show loading state
   const [processingEvents, setProcessingEvents] = useState<Set<string>>(
     new Set(),
   );
@@ -424,127 +423,129 @@ export default function DashboardPage() {
     if (!isAuthenticated) router.replace("/");
   }, [isAuthenticated, router]);
 
-  const fetchEvents = useCallback(
-    async (silent = false) => {
-      if (!user?.region) return;
-      if (!silent) setLoading(true);
-      setFetchError("");
-      try {
-        const data = await apiGetEvents(user.region);
-        setEvents(data);
-      } catch (e) {
-        setFetchError(e instanceof Error ? e.message : "Failed to load events");
-      } finally {
-        if (!silent) setLoading(false);
-      }
-    },
-    [user?.region],
-  );
+  // ── Stable fetchEvents (region read from ref, not closure) ────────────────
+  const regionRef = useRef(user?.region);
+  regionRef.current = user?.region;
+
+  const fetchEvents = useCallback(async (silent = false) => {
+    const region = regionRef.current;
+    if (!region) return;
+    if (!silent) setLoading(true);
+    setFetchError("");
+    try {
+      const data = await apiGetEvents(region);
+      setEvents(data);
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : "Failed to load events");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []); // stable — no deps, region comes from ref
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
   // ── Socket: apply incremental updates ────────────────────────────────────
-  const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
-    // Adding console log so you can easily verify WebSocket traffic in browser DevTools
-    console.log("[WebSocket] Event Update Received:", msg);
+const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
+  // console.log("[WebSocket] Raw message:", JSON.stringify(msg));
 
-    const safeId = msg.id?.trim();
-    if (!safeId) return;
+  const safeId = msg.id?.trim();
+  if (!safeId) {
+    console.warn("[WebSocket] Message has no id, dropping");
+    return;
+  }
 
-    setEvents((prev) => {
-      const exists = prev.some((e) => e.id === safeId);
+  setEvents((prev) => {
+    const exists = prev.some((e) => e.id === safeId);
+    // console.log(
+    //   `[WebSocket] id=${safeId} exists=${exists} total=${prev.length}`,
+    // );
 
-      // 1. If we've never seen this event before, push it to the top
-      if (!exists) {
-        if (msg.content && msg.created_at) {
-          return [
-            {
-              id: safeId,
-              content: msg.content,
-              region: msg.region,
-              status: msg.status,
-              claimed_by: msg.claimed_by ?? null,
-              claimed_at: msg.claimed_at ?? null,
-              acknowledged_at: msg.acknowledged_at ?? null,
-              created_at: msg.created_at,
-            },
-            ...prev,
-          ];
-        }
-        return prev;
+    if (!exists) {
+      console.warn(
+        `[WebSocket] Event ${safeId} not found in state — won't update`,
+      );
+      if (msg.content && msg.created_at) {
+        return [
+          {
+            id: safeId,
+            content: msg.content,
+            region: msg.region,
+            status: msg.status,
+            claimed_by: msg.claimed_by ?? null,
+            claimed_at: msg.claimed_at ?? null,
+            acknowledged_at: msg.acknowledged_at ?? null,
+            created_at: msg.created_at,
+          },
+          ...prev,
+        ];
       }
+      return prev;
+    }
 
-      const isNowAvailable = msg.status === "available";
-
-      // 2. Map functionally forces a completely new array/object reference,
-      // ensuring React completely redraws the tables.
-      return prev.map((e) => {
-        if (e.id !== safeId) return e;
-
-        return {
-          ...e,
-          status: msg.status,
-          region: msg.region || e.region,
-          claimed_by: isNowAvailable
-            ? null
-            : msg.claimed_by !== undefined
-              ? msg.claimed_by
-              : e.claimed_by,
-          claimed_at: isNowAvailable
-            ? null
-            : msg.claimed_at !== undefined
-              ? msg.claimed_at
-              : e.claimed_at,
-          acknowledged_at: isNowAvailable
-            ? null
-            : msg.acknowledged_at !== undefined
-              ? msg.acknowledged_at
-              : e.acknowledged_at,
-        };
-      });
-    });
-
-    // Keep the modal in sync if the updated event is currently open
-    setSelectedEvent((prev) => {
-      if (!prev || prev.id !== safeId) return prev;
-      const isNowAvailable = msg.status === "available";
-
+    const isNowAvailable = msg.status === "available";
+    return prev.map((e) => {
+      if (e.id !== safeId) return e;
       return {
-        ...prev,
+        ...e,
         status: msg.status,
-        region: msg.region || prev.region,
+        region: msg.region || e.region,
         claimed_by: isNowAvailable
           ? null
           : msg.claimed_by !== undefined
             ? msg.claimed_by
-            : prev.claimed_by,
+            : e.claimed_by,
         claimed_at: isNowAvailable
           ? null
           : msg.claimed_at !== undefined
             ? msg.claimed_at
-            : prev.claimed_at,
+            : e.claimed_at,
         acknowledged_at: isNowAvailable
           ? null
           : msg.acknowledged_at !== undefined
             ? msg.acknowledged_at
-            : prev.acknowledged_at,
-        ...(msg.content ? { content: msg.content } : {}),
-        ...(msg.created_at ? { created_at: msg.created_at } : {}),
+            : e.acknowledged_at,
       };
     });
+  });
 
-    // Remove the event from processing state since we received the update
-    setProcessingEvents((prev) => {
-      if (prev.has(safeId)) {
-        const next = new Set(prev);
-        next.delete(safeId);
-        return next;
-      }
-      return prev;
-    });
-  }, []);
+  setSelectedEvent((prev) => {
+    if (!prev || prev.id !== safeId) return prev;
+    const isNowAvailable = msg.status === "available";
+    return {
+      ...prev,
+      status: msg.status,
+      region: msg.region || prev.region,
+      claimed_by: isNowAvailable
+        ? null
+        : msg.claimed_by !== undefined
+          ? msg.claimed_by
+          : prev.claimed_by,
+      claimed_at: isNowAvailable
+        ? null
+        : msg.claimed_at !== undefined
+          ? msg.claimed_at
+          : prev.claimed_at,
+      acknowledged_at: isNowAvailable
+        ? null
+        : msg.acknowledged_at !== undefined
+          ? msg.acknowledged_at
+          : prev.acknowledged_at,
+      ...(msg.content ? { content: msg.content } : {}),
+      ...(msg.created_at ? { created_at: msg.created_at } : {}),
+    };
+  });
+
+  setProcessingEvents((prev) => {
+    if (prev.has(safeId)) {
+      const next = new Set(prev);
+      next.delete(safeId);
+      return next;
+    }
+    return prev;
+  });
+}, []);
 
   useEventSocket({
     region: user?.region ?? "",
@@ -563,7 +564,6 @@ export default function DashboardPage() {
     const safeId = eventId.trim();
     setProcessingEvents((prev) => new Set(prev).add(safeId));
 
-    // UX Failsafe: Automatically clear processing state after 10 seconds.
     setTimeout(() => {
       setProcessingEvents((prev) => {
         if (prev.has(safeId)) {
@@ -758,7 +758,6 @@ export default function DashboardPage() {
         onActionStarted={handleActionStarted}
       />
 
-      {/* Floating Notifications for Processing Events (Simulated Popover) */}
       {processingEvents.size > 0 && (
         <Affix position={{ bottom: 20, right: 20 }}>
           <Stack gap="xs">

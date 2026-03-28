@@ -5,7 +5,7 @@ or anywhere else that needs to notify the frontend.
 """
 import json
 import logging
-from connection_manager import ConnectionManager
+from service.ws.connection_manager import ConnectionManager
 
 logger = logging.getLogger(__name__)
 

@@ -15,7 +15,7 @@ import redis
 
 # The ws/ directory is not a package — add the service root to sys.path
 # so we can import from service.module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from service.ws.broadcaster import broadcast
 from service.module.release_event import release_event_if_claimed

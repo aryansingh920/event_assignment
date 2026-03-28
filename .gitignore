@@ -50,3 +50,6 @@ client/build
 
 service/cache/__pycache__
 client/.next
+client/out
+service/listeners/__pycache__
+service/ws/__pycache__
