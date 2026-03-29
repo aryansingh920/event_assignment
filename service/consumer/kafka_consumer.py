@@ -4,7 +4,8 @@ import threading
 from dotenv import load_dotenv
 from confluent_kafka import Consumer, Producer, KafkaException, KafkaError
 from service.cache.lock_redis_claim_event import process_claim
-from service.cache.lock_expiry_listener import start_expiry_listener
+from service.module.release_event import release_event_if_claimed
+from service.module.release_acknowledge_event import release_acknowledge_event_if_claimed
 
 load_dotenv()
 
@@ -73,15 +74,23 @@ def create_consumer():
 
                 if result["status"] == "locked":
                     print(f"Event {event_id} is locked — try again later.")
-
                 elif result["status"] == "failed":
                     print("Claim failed at DB level.")
-
                 elif result["status"] == "success":
                     print(f"Claimed: {result['data']}")
-                    # Publish the outcome so the WS service can broadcast it
                     _publish_ws_event(
                         producer, "EVENT_CLAIMED", result["data"])
+
+            if payload["type"] == "ACKNOWLEDGE_EVENT":
+                user_id = payload["payload"]["userId"]
+                event_id = payload["payload"]["eventId"]
+                result = release_acknowledge_event_if_claimed(
+                    event_id=event_id)
+                if result:
+                    _publish_ws_event(producer, "EVENT_ACKNOWLEDGED", result)
+
+
+
 
     except KeyboardInterrupt:
         print("\nClosing consumer...")

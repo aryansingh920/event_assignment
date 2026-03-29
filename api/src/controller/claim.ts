@@ -32,7 +32,7 @@ export const getClaim = async (req: Request, res: Response) => {
     
 
     if (checkEvent.rows.length) {
-      if (checkEvent.rows[0]["status"] == "available") {
+      if (checkEvent.rows[0]["status"] === "available") {
         if (checkUser.rows.length) {
           await sendClaimCommand(eventId, userId);
         } else {

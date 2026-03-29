@@ -9,8 +9,6 @@ this one runs inside the WS service and adds the broadcast on top.
 import asyncio
 import logging
 import os
-import sys
-
 import redis
 
 # The ws/ directory is not a package — add the service root to sys.path

@@ -36,7 +36,6 @@ import EventModal from "@/components/EvenModal";
 export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
-
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");

@@ -11,8 +11,10 @@ def claim_event(user_id, event_id, redis_client, lock_key):
         conn = get_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        cur.execute(query, (user_id, event_id))
+        cur.execute(query, (user_id, event_id,))
         result = cur.fetchone()
+
+        print("Result", result)
 
         # IMPORTANT: result is None if the SQL 'WHERE' clause didn't match
         if result is None:

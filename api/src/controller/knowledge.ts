@@ -28,14 +28,16 @@ export const getKnowledge = async (req: Request, res: Response) => {
       eventId,
     };
     if (checkEvent.rows.length) {
-      if (checkEvent.rows[0]["status"] == "claimed") {
+      if (
+        checkEvent.rows[0]["status"] === "claimed" &&
+        checkEvent.rows[0]["claimed_by"] === userId
+      ) {
         if (checkUser.rows.length) {
           await sendAcknowledgeCommand(eventId, userId);
         } else {
           resp.message = "User Not available";
         }
-      } else if (checkEvent.rows[0]["status"] == "available")
-      {
+      } else if (checkEvent.rows[0]["status"] == "available") {
         resp.message = "Event not acknowledged";
       } else {
         resp.message = "Event Not available";
