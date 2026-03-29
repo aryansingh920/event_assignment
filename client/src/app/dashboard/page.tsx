@@ -44,363 +44,8 @@ import {
 } from "@/lib/api";
 import { useEventSocket } from "@/hooks/useEventSocket";
 import { EventSocketMessage } from "@/lib/socket";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<
-  AppEvent["status"],
-  { color: string; label: string; icon: typeof IconCircleDot }
-> = {
-  available: { color: "blue", label: "Available", icon: IconCircleDot },
-  claimed: { color: "orange", label: "Claimed", icon: IconClock },
-  acknowledged: {
-    color: "green",
-    label: "Acknowledged",
-    icon: IconCircleCheck,
-  },
-};
-
-function formatDate(iso: string | null | undefined) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
-
-// ── EventsTable ───────────────────────────────────────────────────────────────
-
-function EventsTable({
-  title,
-  events,
-  accentColor,
-  processingEvents,
-  onRowClick,
-}: {
-  title: string;
-  events: AppEvent[];
-  accentColor: string;
-  processingEvents: Set<string>;
-  onRowClick: (e: AppEvent) => void;
-}) {
-  if (events.length === 0) return null;
-
-  return (
-    <Paper withBorder shadow="xs" radius="md" style={{ overflow: "hidden" }}>
-      <Box
-        px="lg"
-        py="sm"
-        style={{
-          borderBottom: "1px solid var(--mantine-color-gray-2)",
-          borderLeft: `4px solid var(--mantine-color-${accentColor}-5)`,
-        }}
-      >
-        <Group justify="space-between">
-          <Title order={5} fw={700} c="dark.8">
-            {title}
-          </Title>
-          <Badge color={accentColor} variant="light" size="sm">
-            {events.length}
-          </Badge>
-        </Group>
-      </Box>
-
-      <Table.ScrollContainer minWidth={700}>
-        <Table
-          striped
-          highlightOnHover
-          verticalSpacing="sm"
-          horizontalSpacing="lg"
-          style={{ cursor: "pointer" }}
-        >
-          <Table.Thead>
-            <Table.Tr style={{ background: "var(--mantine-color-gray-1)" }}>
-              {[
-                "ID",
-                "Content",
-                "Status",
-                "Created",
-                "Claimed by",
-                "Claimed at",
-                "Acknowledged",
-              ].map((h) => (
-                <Table.Th key={h}>
-                  <Text size="xs" fw={700} tt="uppercase" c="dark.4">
-                    {h}
-                  </Text>
-                </Table.Th>
-              ))}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {events.map((event) => {
-              const cfg = STATUS_CONFIG[event.status];
-              const StatusIcon = cfg.icon;
-              const isProcessing = processingEvents.has(event.id);
-
-              return (
-                <Table.Tr key={event.id} onClick={() => onRowClick(event)}>
-                  <Table.Td>
-                    <Text size="xs" ff="monospace" c="dark.3" fw={500}>
-                      {event.id.slice(0, 8)}…
-                    </Text>
-                  </Table.Td>
-                  <Table.Td style={{ maxWidth: 280 }}>
-                    <Text size="sm" fw={500} c="dark.7" lineClamp={1}>
-                      {event.content}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {isProcessing ? (
-                      <Badge
-                        size="sm"
-                        color="indigo"
-                        variant="outline"
-                        leftSection={<Loader size={10} color="indigo" />}
-                      >
-                        Processing...
-                      </Badge>
-                    ) : (
-                      <Badge
-                        size="sm"
-                        color={cfg.color}
-                        variant="light"
-                        leftSection={<StatusIcon size={11} />}
-                      >
-                        {cfg.label}
-                      </Badge>
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" c="dark.3">
-                      {formatDate(event.created_at)}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" c="dark.4">
-                      {event.claimed_by ?? "—"}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" c="dark.3">
-                      {formatDate(event.claimed_at)}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" c="dark.3">
-                      {formatDate(event.acknowledged_at)}
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              );
-            })}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
-    </Paper>
-  );
-}
-
-// ── EventModal ────────────────────────────────────────────────────────────────
-
-function EventModal({
-  event,
-  opened,
-  onClose,
-  userId,
-  onActionStarted,
-}: {
-  event: AppEvent | null;
-  opened: boolean;
-  onClose: () => void;
-  userId: string;
-  onActionStarted: (eventId: string) => void;
-}) {
-  const [claiming, setClaiming] = useState(false);
-  const [acknowledging, setAcknowledging] = useState(false);
-  const [actionError, setActionError] = useState("");
-
-  useEffect(() => {
-    if (!opened) {
-      setActionError("");
-      setClaiming(false);
-      setAcknowledging(false);
-    }
-  }, [opened]);
-
-  if (!event) return null;
-
-  const cfg = STATUS_CONFIG[event.status];
-  const StatusIcon = cfg.icon;
-
-  const handleClaim = async () => {
-    setClaiming(true);
-    setActionError("");
-    try {
-      await apiClaimEvent(event.id, userId);
-      onActionStarted(event.id);
-      onClose();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to claim event");
-      setClaiming(false);
-    }
-  };
-
-  const handleAcknowledge = async () => {
-    setAcknowledging(true);
-    setActionError("");
-    try {
-      await apiAcknowledgeEvent(event.id, userId);
-      onActionStarted(event.id);
-      onClose();
-    } catch (e) {
-      setActionError(
-        e instanceof Error ? e.message : "Failed to acknowledge event",
-      );
-      setAcknowledging(false);
-    }
-  };
-
-  return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={
-        <Group gap="xs">
-          <IconAlertCircle size={18} color="var(--mantine-color-indigo-6)" />
-          <Text fw={700} c="dark.8">
-            Event Details
-          </Text>
-        </Group>
-      }
-      size="lg"
-      radius="md"
-    >
-      <Stack gap="md">
-        <Group>
-          <Badge
-            color={cfg.color}
-            variant="light"
-            size="md"
-            leftSection={<StatusIcon size={12} />}
-          >
-            {cfg.label}
-          </Badge>
-          <Text size="xs" c="dark.3" ff="monospace">
-            {event.id}
-          </Text>
-        </Group>
-
-        <Paper
-          withBorder
-          radius="sm"
-          p="md"
-          style={{ background: "var(--mantine-color-gray-0)" }}
-        >
-          <Text fw={600} c="dark.8" size="sm" mb={6}>
-            Incident Report
-          </Text>
-          <Text c="dark.7" size="sm" lh={1.7}>
-            {event.content}
-          </Text>
-        </Paper>
-
-        <Divider />
-
-        <Stack gap="xs">
-          <Text fw={600} c="dark.7" size="sm">
-            Metadata
-          </Text>
-          <Group gap="xl" wrap="wrap">
-            {[
-              {
-                icon: IconMapPin,
-                label: "Region",
-                value: event.region,
-                color: "indigo",
-              },
-              {
-                icon: IconCalendar,
-                label: "Created",
-                value: formatDate(event.created_at),
-                color: "indigo",
-              },
-              {
-                icon: IconClock,
-                label: "Claimed at",
-                value: formatDate(event.claimed_at),
-                color: "orange",
-              },
-              {
-                icon: IconCircleCheck,
-                label: "Acknowledged",
-                value: formatDate(event.acknowledged_at),
-                color: "green",
-              },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <Box key={label}>
-                <Group gap={4} mb={2}>
-                  <Icon size={13} color={`var(--mantine-color-${color}-5)`} />
-                  <Text size="xs" c="dark.3" tt="uppercase" fw={700}>
-                    {label}
-                  </Text>
-                </Group>
-                <Text size="sm" c="dark.7">
-                  {value}
-                </Text>
-              </Box>
-            ))}
-          </Group>
-          {event.claimed_by && (
-            <Text size="xs" c="dark.3">
-              Claimed by:{" "}
-              <Text span fw={600} c="dark.6">
-                {event.claimed_by}
-              </Text>
-            </Text>
-          )}
-        </Stack>
-
-        {actionError && (
-          <Alert
-            icon={<IconAlertCircle size={14} />}
-            color="red"
-            variant="light"
-          >
-            {actionError}
-          </Alert>
-        )}
-
-        <Group justify="flex-end" pt="xs">
-          <Button variant="default" onClick={onClose}>
-            Close
-          </Button>
-          <Button
-            leftSection={<IconClock size={14} />}
-            color="orange"
-            variant="light"
-            loading={claiming}
-            disabled={event.status !== "available" || acknowledging}
-            onClick={handleClaim}
-          >
-            Claim
-          </Button>
-          <Button
-            leftSection={<IconCircleCheck size={14} />}
-            color="green"
-            loading={acknowledging}
-            disabled={event.status === "acknowledged" || claiming}
-            onClick={handleAcknowledge}
-          >
-            Acknowledge
-          </Button>
-        </Group>
-      </Stack>
-    </Modal>
-  );
-}
-
-// ── Dashboard page ────────────────────────────────────────────────────────────
+import EventsTable from "@/components/EventsTable";
+import EventModal from "@/components/EvenModal";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -423,7 +68,6 @@ export default function DashboardPage() {
     if (!isAuthenticated) router.replace("/");
   }, [isAuthenticated, router]);
 
-  // ── Stable fetchEvents (region read from ref, not closure) ────────────────
   const regionRef = useRef(user?.region);
   regionRef.current = user?.region;
 
@@ -440,112 +84,103 @@ export default function DashboardPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []); // stable — no deps, region comes from ref
+  }, []);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
-  // ── Socket: apply incremental updates ────────────────────────────────────
-const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
-  // console.log("[WebSocket] Raw message:", JSON.stringify(msg));
-
-  const safeId = msg.id?.trim();
-  if (!safeId) {
-    console.warn("[WebSocket] Message has no id, dropping");
-    return;
-  }
-
-  setEvents((prev) => {
-    const exists = prev.some((e) => e.id === safeId);
-    // console.log(
-    //   `[WebSocket] id=${safeId} exists=${exists} total=${prev.length}`,
-    // );
-
-    if (!exists) {
-      console.warn(
-        `[WebSocket] Event ${safeId} not found in state — won't update`,
-      );
-      if (msg.content && msg.created_at) {
-        return [
-          {
-            id: safeId,
-            content: msg.content,
-            region: msg.region,
-            status: msg.status,
-            claimed_by: msg.claimed_by ?? null,
-            claimed_at: msg.claimed_at ?? null,
-            acknowledged_at: msg.acknowledged_at ?? null,
-            created_at: msg.created_at,
-          },
-          ...prev,
-        ];
-      }
-      return prev;
+  const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
+    const safeId = msg.id?.trim();
+    if (!safeId) {
+      console.warn("[WebSocket] Message has no id, dropping");
+      return;
     }
 
-    const isNowAvailable = msg.status === "available";
-    return prev.map((e) => {
-      if (e.id !== safeId) return e;
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === safeId);
+      if (!exists) {
+        console.warn(
+          `[WebSocket] Event ${safeId} not found in state — won't update`,
+        );
+        if (msg.content && msg.created_at) {
+          return [
+            {
+              id: safeId,
+              content: msg.content,
+              region: msg.region,
+              status: msg.status,
+              claimed_by: msg.claimed_by ?? null,
+              claimed_at: msg.claimed_at ?? null,
+              acknowledged_at: msg.acknowledged_at ?? null,
+              created_at: msg.created_at,
+            },
+            ...prev,
+          ];
+        }
+        return prev;
+      }
+
+      const isNowAvailable = msg.status === "available";
+      return prev.map((e) => {
+        if (e.id !== safeId) return e;
+        return {
+          ...e,
+          status: msg.status,
+          region: msg.region || e.region,
+          claimed_by: isNowAvailable
+            ? null
+            : msg.claimed_by !== undefined
+              ? msg.claimed_by
+              : e.claimed_by,
+          claimed_at: isNowAvailable
+            ? null
+            : msg.claimed_at !== undefined
+              ? msg.claimed_at
+              : e.claimed_at,
+          acknowledged_at: isNowAvailable
+            ? null
+            : msg.acknowledged_at !== undefined
+              ? msg.acknowledged_at
+              : e.acknowledged_at,
+        };
+      });
+    });
+
+    setSelectedEvent((prev) => {
+      if (!prev || prev.id !== safeId) return prev;
+      const isNowAvailable = msg.status === "available";
       return {
-        ...e,
+        ...prev,
         status: msg.status,
-        region: msg.region || e.region,
+        region: msg.region || prev.region,
         claimed_by: isNowAvailable
           ? null
           : msg.claimed_by !== undefined
             ? msg.claimed_by
-            : e.claimed_by,
+            : prev.claimed_by,
         claimed_at: isNowAvailable
           ? null
           : msg.claimed_at !== undefined
             ? msg.claimed_at
-            : e.claimed_at,
+            : prev.claimed_at,
         acknowledged_at: isNowAvailable
           ? null
           : msg.acknowledged_at !== undefined
             ? msg.acknowledged_at
-            : e.acknowledged_at,
+            : prev.acknowledged_at,
+        ...(msg.content ? { content: msg.content } : {}),
+        ...(msg.created_at ? { created_at: msg.created_at } : {}),
       };
     });
-  });
 
-  setSelectedEvent((prev) => {
-    if (!prev || prev.id !== safeId) return prev;
-    const isNowAvailable = msg.status === "available";
-    return {
-      ...prev,
-      status: msg.status,
-      region: msg.region || prev.region,
-      claimed_by: isNowAvailable
-        ? null
-        : msg.claimed_by !== undefined
-          ? msg.claimed_by
-          : prev.claimed_by,
-      claimed_at: isNowAvailable
-        ? null
-        : msg.claimed_at !== undefined
-          ? msg.claimed_at
-          : prev.claimed_at,
-      acknowledged_at: isNowAvailable
-        ? null
-        : msg.acknowledged_at !== undefined
-          ? msg.acknowledged_at
-          : prev.acknowledged_at,
-      ...(msg.content ? { content: msg.content } : {}),
-      ...(msg.created_at ? { created_at: msg.created_at } : {}),
-    };
-  });
-
-  setProcessingEvents((prev) => {
-    if (prev.has(safeId)) {
+    setProcessingEvents((prev) => {
+      if (!prev.has(safeId)) return prev;
       const next = new Set(prev);
       next.delete(safeId);
       return next;
-    }
-    return prev;
-  });
-}, []);
+    });
+  }, []);
 
   useEventSocket({
     region: user?.region ?? "",
@@ -563,15 +198,12 @@ const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
   const handleActionStarted = (eventId: string) => {
     const safeId = eventId.trim();
     setProcessingEvents((prev) => new Set(prev).add(safeId));
-
     setTimeout(() => {
       setProcessingEvents((prev) => {
-        if (prev.has(safeId)) {
-          const next = new Set(prev);
-          next.delete(safeId);
-          return next;
-        }
-        return prev;
+        if (!prev.has(safeId)) return prev;
+        const next = new Set(prev);
+        next.delete(safeId);
+        return next;
       });
     }, 10000);
   };
@@ -591,9 +223,19 @@ const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
     );
   }
 
-  const claimed = events.filter((e) => e.status === "claimed");
-  const acknowledged = events.filter((e) => e.status === "acknowledged");
-  const available = events.filter((e) => e.status === "available");
+  // Single pass — split events into buckets once
+  const available: AppEvent[] = [];
+  const claimed: AppEvent[] = [];
+  const acknowledged: AppEvent[] = [];
+
+  for (const e of events) {
+    if (e.status === "available") available.push(e);
+    else if (e.status === "claimed") claimed.push(e);
+    else if (e.status === "acknowledged") acknowledged.push(e);
+  }
+
+  // Claimed rows visible to this user — derived once here, passed straight to the table
+  const visibleClaimed = claimed.filter((e) => e.claimed_by === user.id);
 
   return (
     <Box
@@ -719,22 +361,28 @@ const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
           ) : (
             <>
               <EventsTable
-                title="Claimed Events"
-                events={claimed}
-                accentColor="orange"
-                processingEvents={processingEvents}
-                onRowClick={handleRowClick}
-              />
-              <EventsTable
                 title="Acknowledged Events"
+                status="acknowledged"
                 events={acknowledged}
+                totalCount={acknowledged.length}
                 accentColor="green"
                 processingEvents={processingEvents}
                 onRowClick={handleRowClick}
               />
               <EventsTable
+                title="Claimed Events"
+                status="claimed"
+                events={visibleClaimed}
+                totalCount={claimed.length}
+                accentColor="orange"
+                processingEvents={processingEvents}
+                onRowClick={handleRowClick}
+              />
+              <EventsTable
                 title="Available Events"
+                status="available"
                 events={available}
+                totalCount={available.length}
                 accentColor="blue"
                 processingEvents={processingEvents}
                 onRowClick={handleRowClick}

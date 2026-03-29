@@ -34,7 +34,7 @@ async def broadcast(
         **({"content": content} if content else {}),
         **({"created_at": created_at} if created_at else {}),
     })
-
+    print("User id",claimed_at,claimed_by)
     logger.info(
         f"[BROADCAST] event={event_id} status={status} region={region}")
 

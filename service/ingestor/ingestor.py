@@ -13,14 +13,8 @@ load_dotenv()
 
 
 REGIONS = [
-    'Asia', 'Europe', 'US', 'Africa', 'LATAM',
-    'South Asia', 'Southeast Asia', 'East Asia', 'Central Asia',
-    'Middle East', 'North Africa', 'Sub-Saharan Africa',
-    'Western Europe', 'Eastern Europe', 'Northern Europe', 'Southern Europe',
-    'North America', 'Central America', 'Caribbean',
-    'South America', 'Oceania', 'Pacific Islands',
-    'Scandinavia', 'Balkans', 'Caucasus',
-    'UK', 'Canada', 'Australia', 'India', 'China', 'Brazil', 'Japan'
+    'Europe', 'US', 'Africa',
+    'UK', 'Asia'
 ]
 
 CONTENTS = [
