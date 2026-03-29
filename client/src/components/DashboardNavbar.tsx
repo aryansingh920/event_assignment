@@ -1,7 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Avatar, Badge, Box, Button, Group, Menu, Text } from "@mantine/core";
+import {
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Group,
+  Menu,
+  Text,
+  Anchor,
+} from "@mantine/core";
 import {
   IconChevronDown,
   IconLayoutDashboard,
@@ -46,27 +55,51 @@ export default function DashboardNavbar() {
     >
       <Group justify="space-between" w="100%">
         {/* Left – brand */}
-        <Group gap="xs">
+        <Group gap="md">
+          <Group gap="xs">
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--mantine-color-indigo-6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <IconLayoutDashboard size={18} color="white" />
+            </Box>
+            <Text
+              fw={700}
+              size="lg"
+              style={{ color: "var(--mantine-color-indigo-8)" }}
+            >
+              Portal
+            </Text>
+          </Group>
+
+          {/* Added Assignment Attribution */}
           <Box
+            visibleFrom="xs"
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "var(--mantine-color-indigo-6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              borderLeft: "1px solid var(--mantine-color-gray-3)",
+              paddingLeft: "1rem",
             }}
           >
-            <IconLayoutDashboard size={18} color="white" />
+            <Text size="xs" c="dimmed">
+              Assignment made by{" "}
+              <Anchor
+                href="https://www.aryan-singh.online/"
+                target="_blank"
+                size="xs"
+                fw={500}
+                underline="hover"
+              >
+                Aryan
+              </Anchor>
+            </Text>
           </Box>
-          <Text
-            fw={700}
-            size="lg"
-            style={{ color: "var(--mantine-color-indigo-8)" }}
-          >
-            Portal
-          </Text>
         </Group>
 
         {/* Right – user menu */}

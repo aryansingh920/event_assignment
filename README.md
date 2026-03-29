@@ -108,3 +108,9 @@ When you run `docker compose up`, the following services are spun up:
 *   **python_ingestor**: Background Python worker that continually mocks and loads region-specific events and users into the system.
 *   **python_consumer**: Background Python worker that listens to Kafka topics to process claims, database updates, and Redis key expirations asynchronously.
 *   **react_client (`client`)**: The frontend UI built to consume the API and WebSockets.
+
+---
+
+Submitted By - Aryan Singh
+aryansingh920@outlook.com
+www.aryan-singh.online
