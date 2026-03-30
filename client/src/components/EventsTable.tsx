@@ -31,6 +31,7 @@ function CountdownTimer({ claimedAt }: { claimedAt: string }) {
       if (left === 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claimedAt]);
 
   if (remaining === 0) {
@@ -106,8 +107,8 @@ export default function EventsTable({
 }: {
   title: string;
   status: EventStatus;
-  events: AppEvent[]; // already filtered to what this user should see
-  totalCount: number; // raw count for the badge (e.g. all claimed, not just mine)
+  events: AppEvent[];
+  totalCount: number;
   accentColor: string;
   processingEvents: Set<string>;
   onRowClick: (e: AppEvent) => void;

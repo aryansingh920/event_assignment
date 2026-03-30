@@ -19,7 +19,7 @@ def release_acknowledge_event_if_claimed(event_id):
         cur.execute(query, (event_id,))
         result = cur.fetchone()
         
-        print("Result",result)
+
 
         if result is None:
             print(
@@ -28,10 +28,12 @@ def release_acknowledge_event_if_claimed(event_id):
 
         conn.commit()
 
-        # Remove the Redis lock key now that the DB has been updated
+
         release_redis_lock(event_id)
 
         print(f"Event {event_id} reset to 'available'.")
+
+        print("Result Here", result)
         return dict(result)
 
     except Exception as e:

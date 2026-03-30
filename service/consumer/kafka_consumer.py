@@ -86,6 +86,7 @@ def create_consumer():
                 event_id = payload["payload"]["eventId"]
                 result = release_acknowledge_event_if_claimed(
                     event_id=event_id)
+                print("result", result)
                 if result:
                     _publish_ws_event(producer, "EVENT_ACKNOWLEDGED", result)
 

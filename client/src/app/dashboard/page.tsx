@@ -76,6 +76,7 @@ export default function DashboardPage() {
   }, [fetchEvents]);
 
   const handleEventUpdate = useCallback((msg: EventSocketMessage) => {
+    // console.log("MSG", msg);
     const safeId = msg.id?.trim();
     if (!safeId) {
       console.warn("[WebSocket] Message has no id, dropping");

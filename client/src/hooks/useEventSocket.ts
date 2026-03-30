@@ -32,8 +32,6 @@ export function useEventSocket({
 
   useEffect(() => {
     if (!ready) return;
-
-    // Destroy any previous socket (handles StrictMode double-mount)
     if (socketRef.current) {
       socketRef.current.destroy();
       socketRef.current = null;
