@@ -1,4 +1,6 @@
-# Protex AI Assignment: Region-Aware Event Assignment System
+# Protex AI Assignment
+Region-Aware Event System
+
 
 This guide provides detailed, step-by-step instructions on how to set up, run, and interact with the Protex backend and frontend services. The entire infrastructure is containerized and relies on Docker.
 
