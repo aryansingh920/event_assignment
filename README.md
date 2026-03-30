@@ -28,7 +28,6 @@ Paste the following configuration into your `.env` file:
 
 ```env
 # API
-# API
 API_PORT=8080
 
 # Database
