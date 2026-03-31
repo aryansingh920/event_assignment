@@ -5,7 +5,7 @@ This document outlines the technical design, architectural philosophy, and the s
 ---
 
 ## Architectural Philosophy
-The core of Protex is a **Resilient, Event-Driven Real-time System**. The architecture is designed to ensure data integrity and high availability across distributed services, managing the lifecycle of events (Available → Claimed → Acknowledged/Expired) with multi-layered validation.
+The core of application is a **Resilient, Event-Driven Real-time System**. The architecture is designed to ensure data integrity and high availability across distributed services, managing the lifecycle of events (Available → Claimed → Acknowledged/Expired) with multi-layered validation.
 
 ### The Triple-Lock Validation Strategy
 To prevent race conditions and ensure system reliability, checks are implemented at three distinct levels:
