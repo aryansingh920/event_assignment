@@ -1,4 +1,4 @@
-# Protex AI Assignment
+# Event AI Assignment
 
 
 This guide provides detailed, step-by-step instructions on how to set up, run, and interact with the Protex backend and frontend services. The entire infrastructure is containerized and relies on Docker.
@@ -18,8 +18,8 @@ Before you begin, ensure you have the following installed on your machine:
 ### 1. Clone the Repository
 Open your terminal and clone the project from GitHub, then navigate into the project directory:
 ```bash
-git clone https://github.com/aryansingh920/protex.git
-cd protex
+git clone https://github.com/aryansingh920/event_assignment.git
+cd event_assignment
 ```
 
 ### 2. Configure Environment Variables
