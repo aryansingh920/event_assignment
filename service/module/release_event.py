@@ -2,6 +2,7 @@
 
 from service.helper.load_query import load_query
 from service.helper.get_connection import get_connection
+from service.cache.release_redis_key import release_redis_lock
 import psycopg2
 import psycopg2.extras
 
@@ -24,6 +25,7 @@ def release_event_if_claimed(event_id):
 
         conn.commit()
         print(f"Event {event_id} reset to 'available'.")
+        release_redis_lock(event_id=event_id)
         return dict(result)
 
     except Exception as e:

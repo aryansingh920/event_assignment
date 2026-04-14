@@ -17,3 +17,7 @@ docker compose up -d --build python-consumer
 docker compose up -d --build ws-service
 docker compose up -d --build node-api
 docker compose up -d --build client
+
+
+redis-cli 
+KEYS '*'
